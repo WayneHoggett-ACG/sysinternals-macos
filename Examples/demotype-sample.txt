@@ -1,0 +1,8 @@
+echo "Welcome to the demo"
+[end]
+ls -la[pause:5]
+cat README.md
+[end]
+This is the third snippet.
+It has two lines.
+[end]
