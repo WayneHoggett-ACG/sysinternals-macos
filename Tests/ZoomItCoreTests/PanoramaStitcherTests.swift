@@ -61,4 +61,68 @@ final class PanoramaStitcherTests: XCTestCase {
         let b = PanoramaStitcher.signature(for: makeFrame(width: 200, height: 100, contentOffset: 25), sampleColumns: 48)!
         XCTAssertEqual(PanoramaStitcher.bestVerticalShift(previous: a, current: b), 25)
     }
+
+    // MARK: - Sparse pages (regression: blank regions caused duplicated content)
+
+    /// A document that is mostly uniform background with one textured content
+    /// band, like a web page with a heading and an image on a plain backdrop.
+    private func makeSparseFrame(width: Int, height: Int, contentOffset: Int) -> CGImage {
+        let ctx = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        )!
+        let pixels = ctx.data!.bindMemory(to: UInt8.self, capacity: width * height)
+        for row in 0..<height {
+            let contentRow = row + contentOffset
+            let inBand = (contentRow % 160) < 50
+            for col in 0..<width {
+                if inBand {
+                    let v = (contentRow * 37 + (contentRow % 7) * 31 + (col / 4) * 13) % 251
+                    pixels[row * width + col] = UInt8(v)
+                } else {
+                    pixels[row * width + col] = 230 // blank background
+                }
+            }
+        }
+        return ctx.makeImage()!
+    }
+
+    /// The reported bug: scrolling a sparse page duplicated whole sections,
+    /// because a tiny all-blank overlap at a huge shift outscored the true
+    /// alignment. The detected shift must be the real scroll distance.
+    func testSparsePageScrollDoesNotDuplicate() {
+        let stitcher = PanoramaStitcher()
+        stitcher.append(makeSparseFrame(width: 200, height: 100, contentOffset: 0))
+        let shift = stitcher.append(makeSparseFrame(width: 200, height: 100, contentOffset: 30))
+        XCTAssertEqual(shift, 30, "must lock onto the content band, not the blank background")
+        XCTAssertEqual(stitcher.totalHeight, 130, "panorama must grow by the scroll distance only")
+    }
+
+    func testSparsePageDuplicateFrameSkipped() {
+        let stitcher = PanoramaStitcher()
+        stitcher.append(makeSparseFrame(width: 200, height: 100, contentOffset: 0))
+        let shift = stitcher.append(makeSparseFrame(width: 200, height: 100, contentOffset: 0))
+        XCTAssertEqual(shift, 0)
+        XCTAssertEqual(stitcher.totalHeight, 100)
+    }
+
+    /// Frames with no structure at all (fully blank) carry no alignment
+    /// information; they must be skipped rather than appended.
+    func testFullyBlankFrameSkipped() {
+        let stitcher = PanoramaStitcher()
+        stitcher.append(makeSparseFrame(width: 200, height: 100, contentOffset: 0))
+        let blankA = PanoramaStitcher.signature(for: makeSparseFrame(width: 200, height: 100, contentOffset: 60), sampleColumns: 48)!
+        let blankB = PanoramaStitcher.signature(for: makeSparseFrame(width: 200, height: 100, contentOffset: 70), sampleColumns: 48)!
+        // Offsets 60/70 put both frames fully in the blank gap (rows 50..159).
+        XCTAssertEqual(PanoramaStitcher.bestVerticalShift(previous: blankA, current: blankB), 0)
+    }
+
+    /// Scrolling farther than the safe overlap between captures must skip the
+    /// frame instead of guessing a bogus alignment.
+    func testExcessiveScrollRejected() {
+        let a = PanoramaStitcher.signature(for: makeFrame(width: 200, height: 100, contentOffset: 0), sampleColumns: 48)!
+        let b = PanoramaStitcher.signature(for: makeFrame(width: 200, height: 100, contentOffset: 95), sampleColumns: 48)!
+        XCTAssertEqual(PanoramaStitcher.bestVerticalShift(previous: a, current: b), 0)
+    }
 }

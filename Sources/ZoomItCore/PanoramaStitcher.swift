@@ -124,20 +124,36 @@ public final class PanoramaStitcher {
 
     /// How many rows did content move up between `previous` and `current`?
     /// (Positive shift = user scrolled down, new content at the bottom.)
+    ///
+    /// Two safeguards keep blank page regions from causing false locks
+    /// (which duplicate content in the panorama):
+    ///   - candidate shifts must keep a substantial overlap, so a tiny
+    ///     accidentally-matching strip can't win over the true alignment;
+    ///   - only rows with visible structure are scored, because blank rows
+    ///     match at every offset and say nothing about the real scroll.
     static func bestVerticalShift(previous: FrameSignature, current: FrameSignature) -> Int {
         let height = min(previous.rows.count, current.rows.count)
-        guard height > 8 else { return 0 }
-        let maxShift = height - 4
+        guard height > 16 else { return 0 }
+        // Frames sharing less than this can't be aligned reliably; the user
+        // scrolled too far between captures and we skip the frame instead of
+        // guessing.
+        let minOverlap = max(16, height / 5)
+        let maxShift = height - minOverlap
+        guard maxShift > 0 else { return 0 }
+
+        let informative = previous.rows.map(Self.isInformative)
+
         var bestShift = 0
         var bestScore = Float.greatestFiniteMagnitude
         // For shift s: previous row (r + s) should match current row r.
         for s in 0...maxShift {
             let overlap = height - s
-            // Sample every few rows for speed.
             var score: Float = 0
             var samples = 0
             var r = 0
             while r < overlap {
+                defer { r += 2 }
+                guard informative[r + s] else { continue }
                 let a = previous.rows[r + s]
                 let b = current.rows[r]
                 let n = min(a.count, b.count)
@@ -145,17 +161,31 @@ public final class PanoramaStitcher {
                 for i in 0..<n { diff += abs(a[i] - b[i]) }
                 score += diff / Float(max(n, 1))
                 samples += 1
-                r += 3
             }
-            score /= Float(max(samples, 1))
+            // Without enough structured rows in the overlap the score is
+            // meaningless — ignore this candidate entirely.
+            guard samples >= 6 else { continue }
+            score /= Float(samples)
             // Prefer smaller shifts on ties to avoid runaway matching.
             if score < bestScore - 0.01 {
                 bestScore = score
                 bestShift = s
             }
         }
-        // Reject poor matches (mean abs difference > 12/255): treat as no scroll.
-        if bestScore > 12 { return 0 }
+        // Reject poor matches (mean abs difference > 10/255): treat as no scroll.
+        if bestScore > 10 { return 0 }
         return bestShift
+    }
+
+    /// A row carries alignment information only if its luminance varies
+    /// across the sampled columns.
+    static func isInformative(_ row: [Float]) -> Bool {
+        guard let first = row.first else { return false }
+        var minValue = first, maxValue = first
+        for v in row {
+            if v < minValue { minValue = v }
+            if v > maxValue { maxValue = v }
+        }
+        return maxValue - minValue > 6
     }
 }

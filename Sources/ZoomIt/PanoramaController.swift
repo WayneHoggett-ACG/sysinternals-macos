@@ -58,7 +58,9 @@ final class PanoramaController: NSObject, SCStreamOutput, SCStreamDelegate {
                 )
                 config.width = Int(rect.width * scale)
                 config.height = Int(rect.height * scale)
-                config.minimumFrameInterval = CMTime(value: 1, timescale: 8)
+                // Capture briskly so consecutive frames overlap plenty even
+                // while scrolling; the stitcher skips no-movement frames.
+                config.minimumFrameInterval = CMTime(value: 1, timescale: 15)
                 config.showsCursor = false
                 let stream = SCStream(filter: filter, configuration: config, delegate: self)
                 try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: self.sampleQueue)
