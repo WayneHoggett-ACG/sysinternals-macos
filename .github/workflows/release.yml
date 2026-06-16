@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # required for the workflow to create a GitHub Release
+
+jobs:
+  release:
+    name: Build & publish release
+    # macos-15 ships the macOS 15 SDK, required to compile the macOS 15+
+    # APIs that are runtime-guarded in the recorder.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history + tags so `git describe` resolves the version
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Run tests
+        run: swift test
+
+      - name: Build universal app and package
+        run: make zip ARCHS="arm64 x86_64"
+
+      - name: Resolve version
+        id: version
+        run: echo "version=$(make version | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the binary is universal
+        run: lipo -archs dist/ZoomIt.app/Contents/MacOS/ZoomIt
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "ZoomIt ${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            "dist/ZoomIt-${{ steps.version.outputs.version }}.zip"

@@ -134,10 +134,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func menuShowTimer() { breakTimer.showWindow() }
     @objc private func menuOptions() { optionsWindow.show() }
 
+    /// Marketing version stamped into the bundle at build time; "dev" when run
+    /// unbundled via `swift run`.
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
+    }
+
     @objc private func menuAbout() {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "ZoomIt for macOS"
+        alert.messageText = "ZoomIt for macOS \(appVersion)"
         alert.informativeText = "A native macOS port of Mark Russinovich's Sysinternals ZoomIt: screen zoom, annotation, break timer, screen recording, snipping, OCR, DemoType, and panorama capture.\n\nOriginal Windows version: Sysinternals / Microsoft."
         alert.runModal()
     }

@@ -4,6 +4,20 @@ A native macOS port of [Sysinternals ZoomIt](https://learn.microsoft.com/en-us/s
 
 Built with Swift + AppKit + ScreenCaptureKit. Runs as a menu-bar app, just like ZoomIt's tray presence on Windows.
 
+## Installing
+
+Download the latest `ZoomIt-<version>.zip` from the [Releases page](https://github.com/WayneHoggett-ACG/sysinternals-macos/releases), unzip it, and drag `ZoomIt.app` to `/Applications`.
+
+The release binaries are ad-hoc signed (not notarized with an Apple Developer ID), so on first launch macOS Gatekeeper will warn that the developer can't be verified. To open it the first time:
+
+- **Right-click `ZoomIt.app` → Open**, then confirm in the dialog (you only do this once), or
+- remove the quarantine flag from Terminal:
+  ```sh
+  xattr -d com.apple.quarantine /Applications/ZoomIt.app
+  ```
+
+After that it launches normally and lives in the menu bar.
+
 ## Building
 
 ```sh
@@ -73,3 +87,22 @@ There is also a built-in end-to-end smoke test that exercises the real status it
 ```sh
 ./dist/ZoomIt.app/Contents/MacOS/ZoomIt --selftest
 ```
+
+## Versioning and releases
+
+Versions follow [Semantic Versioning](https://semver.org): `vMAJOR.MINOR.PATCH`.
+
+- **MAJOR** — breaking changes (raising the minimum macOS version, changing a hotkey contract)
+- **MINOR** — new features (a new mode or option)
+- **PATCH** — bug fixes
+
+**Git tags are the single source of truth.** The build derives `CFBundleShortVersionString` from the latest tag (via `git describe`) and `CFBundleVersion` from the commit count — nothing is hardcoded, so the version can never drift from the tag. Check what a build would stamp with `make version`.
+
+Development is trunk-based: commit to `main` (or short-lived `feature/*` branches via PR). Every push and PR runs [CI](.github/workflows/ci.yml) (tests + a smoke build). Cutting a release is just pushing a tag:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+That triggers the [release workflow](.github/workflows/release.yml), which runs the tests, builds a **universal** (arm64 + x86_64) app bundle, packages it as `ZoomIt-<version>.zip`, and publishes a GitHub Release with auto-generated notes and the zip attached. To preview the release notes, keep PR titles and squash-merge commit messages descriptive — they become the changelog. See [CHANGELOG.md](CHANGELOG.md) for the curated history.
