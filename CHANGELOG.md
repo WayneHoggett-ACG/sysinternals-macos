@@ -4,20 +4,7 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-- Release pipeline: tag-driven SemVer (version stamped into the bundle from
-  `git describe`), GitHub Actions CI on every push/PR, and a release workflow
-  that publishes a universal (arm64 + x86_64) `.app` zip on `v*` tags.
-- About dialog now shows the running version.
-
-### Fixed
-- Panorama capture no longer duplicates content on pages with large blank
-  regions; the frame-alignment search ignores featureless rows and requires a
-  substantial overlap.
-
-## [1.0.0]
+## [1.0.0] - 2026-06-17
 
 Initial native macOS port of Sysinternals ZoomIt.
 
@@ -38,3 +25,7 @@ Initial native macOS port of Sysinternals ZoomIt.
 - Panorama scrolling screenshots.
 - Options window with a click-to-record hotkey editor; all 14 hotkeys match
   ZoomIt for Windows by default and persist to `UserDefaults`.
+- Release pipeline: tag-driven SemVer (version stamped into the bundle from
+  `git describe`), GitHub Actions CI on every push/PR, and a release workflow
+  that publishes a universal (arm64 + x86_64) `.app` zip on `v*` tags.
+- About dialog shows the running version.
