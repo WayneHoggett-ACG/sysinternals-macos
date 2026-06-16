@@ -15,7 +15,7 @@ jobs:
     # APIs that are runtime-guarded in the recorder.
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0   # full history + tags so `git describe` resolves the version
 

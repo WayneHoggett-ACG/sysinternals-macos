@@ -17,7 +17,7 @@ jobs:
     # APIs that are runtime-guarded in the recorder.
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Show toolchain
         run: swift --version

@@ -90,19 +90,13 @@ There is also a built-in end-to-end smoke test that exercises the real status it
 
 ## Versioning and releases
 
-Versions follow [Semantic Versioning](https://semver.org): `vMAJOR.MINOR.PATCH`.
-
-- **MAJOR** — breaking changes (raising the minimum macOS version, changing a hotkey contract)
-- **MINOR** — new features (a new mode or option)
-- **PATCH** — bug fixes
-
-**Git tags are the single source of truth.** The build derives `CFBundleShortVersionString` from the latest tag (via `git describe`) and `CFBundleVersion` from the commit count — nothing is hardcoded, so the version can never drift from the tag. Check what a build would stamp with `make version`.
-
-Development is trunk-based: commit to `main` (or short-lived `feature/*` branches via PR). Every push and PR runs [CI](.github/workflows/ci.yml) (tests + a smoke build). Cutting a release is just pushing a tag:
+Versions follow [Semantic Versioning](https://semver.org) (`vMAJOR.MINOR.PATCH`), with git tags as the single source of truth — the build derives the bundle version from the latest tag, so nothing is hardcoded. Development is trunk-based, and cutting a release is just pushing a tag:
 
 ```sh
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
-That triggers the [release workflow](.github/workflows/release.yml), which runs the tests, builds a **universal** (arm64 + x86_64) app bundle, packages it as `ZoomIt-<version>.zip`, and publishes a GitHub Release with auto-generated notes and the zip attached. To preview the release notes, keep PR titles and squash-merge commit messages descriptive — they become the changelog. See [CHANGELOG.md](CHANGELOG.md) for the curated history.
+That triggers the [release workflow](.github/workflows/release.yml), which tests, builds a **universal** (arm64 + x86_64) bundle, and publishes a GitHub Release with the zip attached. Releases fire **only** on `v*` tags — ordinary commits never publish one.
+
+See **[docs/BUILD_AND_RELEASE.md](docs/BUILD_AND_RELEASE.md)** for the full build, versioning, and release strategy, and [CHANGELOG.md](CHANGELOG.md) for the curated history.
